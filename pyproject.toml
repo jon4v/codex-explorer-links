@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-explorer-links"
-version = "1.0.1"
+version = "1.1.0"
 description = "Generate local links that reveal selected files in Windows Explorer from Codex or a terminal."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -18,6 +18,7 @@ Repository = "https://github.com/jon4v/codex-explorer-links"
 
 [project.scripts]
 codex-explorer-links = "explorer_links:main"
+codex-explorer-open = "explorer_direct:main"
 
 [tool.setuptools]
-py-modules = ["explorer_links"]
+py-modules = ["explorer_links", "explorer_direct", "explorer_desktop"]

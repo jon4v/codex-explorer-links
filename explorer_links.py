@@ -4,27 +4,12 @@ import html
 import os
 from pathlib import Path
 import secrets
-import shutil
 import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-
-def explorer_command(path):
-    if os.name == "nt":
-        return [str(Path(os.environ["SystemRoot"]) / "explorer.exe"), "/select,", str(path)]
-    windows_path = subprocess.check_output(["wslpath", "-w", str(path)], text=True).rstrip("\n")
-    explorer = shutil.which("explorer.exe")
-    if not explorer:
-        explorer = subprocess.check_output(
-            ["wslpath", "-u", r"C:\Windows\explorer.exe"], text=True
-        ).rstrip("\n")
-    return [explorer, "/select,", windows_path]
-
-
-def reveal(path):
-    subprocess.Popen(explorer_command(path), stdin=subprocess.DEVNULL,
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+from explorer_desktop import powershell, reveal
+from explorer_direct import direct_opener_configured, register
 
 
 class Links(BaseHTTPRequestHandler):
@@ -38,7 +23,8 @@ class Links(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Content-Security-Policy",
                          "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
-        self.send_header("Content-Length", str(len(body)))
+        if status != 204:
+            self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(body)
@@ -78,11 +64,9 @@ class Links(BaseHTTPRequestHandler):
                 ).encode())
         try:
             self.server.reveal(path)
-        except (OSError, subprocess.SubprocessError):
-            return self.reply(503, b"Could not start File Explorer.")
-        self.reply(200, b'<!doctype html><html lang="en"><meta charset="utf-8">'
-                         b'<title>File Explorer</title><p>Request sent to File Explorer. '
-                         b'You can close this tab.</p></html>')
+        except (OSError, subprocess.SubprocessError, RuntimeError):
+            return self.reply(503, b"File Explorer could not confirm the file selection and foreground focus.")
+        self.reply(204)
 
     do_GET = do_HEAD = do_POST = handle_link
 
@@ -96,6 +80,10 @@ def serve(files, opener=reveal):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--direct", dest="direct", action="store_true", help="Use the WSL direct opener and exit.")
+    mode.add_argument("--browser", dest="direct", action="store_false", help="Serve browser-compatible links.")
+    parser.set_defaults(direct=None)
     parser.add_argument("files", nargs="+", type=Path)
     parser.add_argument("--hours", type=int, choices=range(1, 169), metavar="1..168", default=24)
     args = parser.parse_args()
@@ -104,11 +92,16 @@ def main():
         if not path.is_file():
             parser.error(f"File not found: {path}")
     try:
-        command = explorer_command(paths[0])
-        if not Path(command[0]).is_file():
-            parser.error("Windows Explorer not found")
-    except (OSError, subprocess.SubprocessError):
-        parser.error("Run from Windows or WSL with Windows interoperability enabled")
+        powershell()
+    except (OSError, subprocess.SubprocessError) as exc:
+        parser.error(str(exc))
+    direct = direct_opener_configured() if args.direct is None else args.direct
+    if direct and os.name == "nt":
+        parser.error("Direct links require the WSL opener. Use --browser on native Windows.")
+    if direct:
+        for path, url in zip(paths, register(paths, args.hours)):
+            print(f"{path.name}\t{url}")
+        return
     with serve(paths) as server:
         for endpoint, path in server.targets.items():
             print(f"{path.name}\thttp://127.0.0.1:{server.server_port}{endpoint}", flush=True)
