@@ -51,7 +51,7 @@ class Links(BaseHTTPRequestHandler):
         if path is None:
             return self.reply(404)
         if not path.is_file():
-            return self.reply(410, b"El archivo se ha movido o eliminado.")
+            return self.reply(410, b"The file has been moved or deleted.")
         if self.command == "HEAD":
             return self.reply(200)
         if self.command == "POST":
@@ -70,19 +70,19 @@ class Links(BaseHTTPRequestHandler):
             if not automatic:
                 name = html.escape(path.name)
                 return self.reply(200, (
-                    '<!doctype html><html lang="es"><meta charset="utf-8">'
+                    '<!doctype html><html lang="en"><meta charset="utf-8">'
                     '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                    '<title>Mostrar en el Explorador</title>'
+                    '<title>Show in File Explorer</title>'
                     f'<h1>{name}</h1><form method="post">'
-                    '<button>Mostrar en el Explorador de Windows</button></form></html>'
+                    '<button>Show in File Explorer</button></form></html>'
                 ).encode())
         try:
             self.server.reveal(path)
         except (OSError, subprocess.SubprocessError):
-            return self.reply(503, b"No se pudo iniciar el Explorador.")
-        self.reply(200, b'<!doctype html><html lang="es"><meta charset="utf-8">'
-                         b'<title>Explorador</title><p>Solicitud enviada al Explorador. '
-                         b'Puedes cerrar esta pesta&#241;a.</p></html>')
+            return self.reply(503, b"Could not start File Explorer.")
+        self.reply(200, b'<!doctype html><html lang="en"><meta charset="utf-8">'
+                         b'<title>File Explorer</title><p>Request sent to File Explorer. '
+                         b'You can close this tab.</p></html>')
 
     do_GET = do_HEAD = do_POST = handle_link
 

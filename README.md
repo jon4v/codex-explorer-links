@@ -1,51 +1,56 @@
 # Codex Explorer Links
 
-A small Python CLI for Windows and WSL. Generate a clickable link to reveal a file in Windows Explorer from Codex or a terminal. Works locally with the Python standard library. Independent community project.
+Open File Explorer with a particular file selected. Run this Python CLI on Windows or in WSL, then click the link it prints in Codex or your terminal. This is an independent community project.
 
-Comparte un vínculo clicable a un archivo de tu propio equipo. Desde la terminal, un clic en el vínculo abre el Explorador de Windows con el archivo seleccionado. Si el navegador trata el vínculo como una vista previa, aparece el botón **Mostrar en el Explorador de Windows**. El archivo puede ser un 3MF, una imagen, un HTML o cualquier otro archivo existente.
+## Install
 
-## Instalación
-
-Con Python 3.9 o posterior y [pipx](https://pipx.pypa.io/stable/installation/), ejecuta esto en PowerShell o WSL:
+With Python 3.9 or later and [pipx](https://pipx.pypa.io/stable/installation/), run this command in PowerShell or WSL:
 
 ```console
-pipx install https://github.com/jon4v/codex-explorer-links/releases/download/v1.0.0/codex_explorer_links-1.0.0-py3-none-any.whl
+pipx install https://github.com/jon4v/codex-explorer-links/releases/download/v1.0.1/codex_explorer_links-1.0.1-py3-none-any.whl
 ```
 
-Si el comando instalado aún no aparece en tu terminal, ejecuta `pipx ensurepath` y abre una terminal nueva. Para quitar la herramienta, usa `pipx uninstall codex-explorer-links`.
+If your terminal cannot find the command after installation, run `pipx ensurepath` and open a new terminal. To uninstall, run `pipx uninstall codex-explorer-links`.
 
-## Primer enlace
+## Reveal a file
 
-Desde la carpeta donde guardaste el archivo, en PowerShell o WSL:
+From the folder containing your file, run:
 
 ```console
-codex-explorer-links "modelo.3mf"
+codex-explorer-links "model.3mf"
 ```
 
-También puedes pasar varios archivos y elegir cuánto duran los enlaces:
+Click the URL next to the filename. A direct click from a terminal can open File Explorer immediately. If the browser shows a confirmation page, click **Show in File Explorer**.
+
+To create links for two files and keep them available for two hours, run:
 
 ```console
-codex-explorer-links --hours 2 "modelo.3mf" "visor.html"
+codex-explorer-links --hours 2 "model.3mf" "preview.html"
 ```
 
-Si prefieres leer y ejecutar el código directamente, descarga el código fuente desde [GitHub Releases](https://github.com/jon4v/codex-explorer-links/releases). Desde la carpeta extraída usa `py -3 explorer_links.py "modelo.3mf"` en Windows o `python3 explorer_links.py "modelo.3mf"` en WSL.
+Keep the command running while you use its links. The default lifetime is 24 hours. You can set it to any whole number of hours from 1 to 168, or press Ctrl+C to stop it early. If you stop the command, restart your computer, or move the file, run the command again for a fresh link.
 
-Cada línea de salida contiene el nombre y un vínculo. Pega el vínculo en Codex o usa Markdown con la etiqueta «Mostrar el modelo en el Explorador». Para una entrega con varios archivos, pásalos todos en la misma invocación. Los enlaces normales de Codex siguen disponibles para previsualizar. El navegador puede dejar abierta una pestaña de confirmación.
+## Use links in a Codex response
 
-El proceso atiende únicamente en el bucle local IPv4. Requiere que el navegador y el Explorador estén en el mismo equipo. En WSL, el navegador de Windows necesita acceso al puerto local de WSL. El servicio dura 24 horas por defecto, hasta 168 con `--hours`; Ctrl+C lo termina antes. Al cerrar el proceso, reiniciar el PC o mover el archivo, crea vínculos nuevos. Para compartir la herramienta, envía la página del proyecto. Cada persona genera enlaces en su propio equipo.
+Pass all the finished files to the CLI in one invocation. Use the printed URL for a link labeled **Show in File Explorer** and include the ordinary file path for later access. Tell the reader how long the links will last. Each person who wants this feature runs the CLI on their own computer.
 
-## Cómo usarlo desde un agente
+## How it works
 
-Para entregar archivos en Windows, ejecuta el comando una vez con las rutas finales. Mantén vivo ese proceso durante el periodo indicado y usa las URLs que imprimió para los enlaces «Mostrar en el Explorador». Indica su vigencia y conserva también las rutas de los entregables para uso posterior. No inventes ni reutilices URLs de procesos vencidos.
+The CLI listens on the IPv4 loopback address and generates a random token for each file. It keeps the token-to-path mapping in memory. File contents stay on disk. Anyone who has a valid link and access to the same computer can use it to select that file.
 
-## Qué se expone
+Link previews show a confirmation button. A direct browser navigation can request selection immediately. The browser may leave a confirmation tab open. When running under WSL, the Windows browser must be able to reach the WSL loopback service.
 
-Cada enlace lleva un identificador aleatorio, asociado en memoria con un único archivo elegido al arrancar. El servicio no enumera carpetas ni transmite los archivos. Las lecturas de previsualización muestran un botón; el envío de ese formulario requiere el mismo origen. Una navegación directa desde una aplicación puede solicitar la selección de inmediato. Quien tenga el enlace y acceso al mismo equipo puede pedir esa selección. No se necesita administrador, registro de protocolos ni servicios de inicio.
+## Run from source
 
-## Prueba
+Download the source archive from [GitHub Releases](https://github.com/jon4v/codex-explorer-links/releases) and extract it. The CLI uses only the Python standard library.
 
-Ejecuta `python3 -m unittest -v` en WSL o `py -3 -m unittest -v` en Windows. Las pruebas usan dos archivos temporales y un Explorador simulado. Para comprobar la integración real, abre el vínculo de un archivo y verifica que el Explorador lo haya seleccionado.
+| Action | Windows (PowerShell) | WSL |
+| --- | --- | --- |
+| Create a link | `py -3 explorer_links.py "model.3mf"` | `python3 explorer_links.py "model.3mf"` |
+| Run the tests | `py -3 -m unittest -v` | `python3 -m unittest -v` |
 
-## Licencia
+The tests use temporary files and a simulated File Explorer. To test desktop integration, open a link and check the selected filename in File Explorer.
+
+## License
 
 [MIT](LICENSE).
