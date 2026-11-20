@@ -5,6 +5,7 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 import explorer_direct
 
@@ -20,9 +21,16 @@ class RevealTest(unittest.TestCase):
             urls = explorer_direct.register(files, 1)
             with patch.object(explorer_direct, "reveal") as reveal:
                 for url, path in zip(urls, files):
-                    explorer_direct.open_direct(url)
+                    parsed = urlsplit(url)
+                    self.assertEqual(parsed._replace(fragment="").geturl(), "http://127.0.0.1:0/")
+                    self.assertRegex(parsed.fragment, r"^codex-explorer-[A-Za-z0-9_-]{32}$")
+                    with patch("sys.argv", ["codex-explorer-open", url]):
+                        explorer_direct.main()
                     reveal.assert_called_with(path)
-                for bad in (urls[0] + "?extra=1", urls[0].replace(".localhost", ".example"),
+                legacy = explorer_direct.LEGACY_PREFIX + urls[0].removeprefix(explorer_direct.PREFIX)
+                explorer_direct.open_direct(legacy)
+                reveal.assert_called_with(files[0])
+                for bad in (urls[0] + "?extra=1", urls[0].replace("127.0.0.1", "example.org"),
                             explorer_direct.PREFIX + "x" * 32):
                     with self.assertRaises(ValueError):
                         explorer_direct.open_direct(bad)
@@ -32,7 +40,7 @@ class RevealTest(unittest.TestCase):
                 with patch("explorer_direct.time.time", return_value=10**11):
                     with self.assertRaisesRegex(ValueError, "expired"):
                         explorer_direct.open_direct(urls[0])
-                self.assertEqual(reveal.call_count, 2)
+                self.assertEqual(reveal.call_count, 3)
 
     def test_ordinary_invocation_recognizes_the_installed_fallback(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict("os.environ", {"BROWSER": ""}):
@@ -52,11 +60,11 @@ class RevealTest(unittest.TestCase):
                     self.assertFalse(explorer_direct.direct_opener_configured())
 
     def test_other_web_links_use_the_existing_opener(self):
-        url = "https://example.com/a?b=c&d=e"
-        with patch("sys.argv", ["codex-explorer-open", url]), patch("explorer_direct.os.name", "posix"), patch("os.execvpe") as launch:
-            explorer_direct.main()
-        self.assertEqual(launch.call_args.args[:2], ("xdg-open", ["xdg-open", url]))
-        self.assertEqual(launch.call_args.args[2]["CODEX_EXPLORER_DELEGATING"], "1")
+        for url in ("https://example.com/a?b=c&d=e", "http://127.0.0.1:8080/#codex-explorer-test"):
+            with self.subTest(url=url), patch("sys.argv", ["codex-explorer-open", url]), patch("explorer_direct.os.name", "posix"), patch("os.execvpe") as launch:
+                explorer_direct.main()
+                self.assertEqual(launch.call_args.args[:2], ("xdg-open", ["xdg-open", url]))
+                self.assertEqual(launch.call_args.args[2]["CODEX_EXPLORER_DELEGATING"], "1")
 
     def test_only_explicit_navigation_reveals_a_registered_file(self):
         with tempfile.TemporaryDirectory() as temp:

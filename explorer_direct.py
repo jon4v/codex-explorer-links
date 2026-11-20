@@ -13,7 +13,9 @@ from urllib.parse import urlsplit
 from explorer_desktop import reveal
 
 
-PREFIX = "http://codex-explorer.localhost/"
+# Browsers block port zero. The fragment never enters an HTTP request target.
+PREFIX = "http://127.0.0.1:0/#codex-explorer-"
+LEGACY_PREFIX = "http://codex-explorer.localhost/"
 TOKEN = re.compile(r"[A-Za-z0-9_-]{32}")
 
 
@@ -42,8 +44,9 @@ def register(paths, hours):
 
 
 def open_direct(url):
-    token = url[len(PREFIX):]
-    if not url.startswith(PREFIX) or not TOKEN.fullmatch(token):
+    prefix = LEGACY_PREFIX if url.startswith(LEGACY_PREFIX) else PREFIX
+    token = url.removeprefix(prefix)
+    if not url.startswith(prefix) or not TOKEN.fullmatch(token):
         raise ValueError("Invalid File Explorer link.")
     with registry() as conn:
         row = conn.execute("SELECT path FROM links WHERE token = ?", (token,)).fetchone()
@@ -74,7 +77,7 @@ def main():
     url = sys.argv[1]
     try:
         parsed = urlsplit(url)
-        if parsed.hostname == "codex-explorer.localhost":
+        if url.startswith(PREFIX) or parsed.hostname == "codex-explorer.localhost":
             open_direct(url)
         elif parsed.scheme in {"http", "https"} and parsed.hostname and os.name == "posix":
             if os.environ.get("CODEX_EXPLORER_DELEGATING"):

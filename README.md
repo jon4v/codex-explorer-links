@@ -7,7 +7,7 @@ Open File Explorer with a particular file selected. Run this Python CLI on Windo
 With Python 3.9 or later and [pipx](https://pipx.pypa.io/stable/installation/), run this command in PowerShell or WSL:
 
 ```console
-pipx install https://github.com/jon4v/codex-explorer-links/releases/download/v1.1.0/codex_explorer_links-1.1.0-py3-none-any.whl
+pipx install https://github.com/jon4v/codex-explorer-links/releases/download/v1.1.1/codex_explorer_links-1.1.1-py3-none-any.whl
 ```
 
 If your terminal cannot find the command after installation, run `pipx ensurepath` and open a new terminal. To uninstall, run `pipx uninstall codex-explorer-links`.
@@ -26,9 +26,9 @@ For an existing thread, use `BROWSER=codex-explorer-open codex resume` when reop
 codex-explorer-links --direct "model.3mf"
 ```
 
-Use the generated URL for **Show in File Explorer** in a Codex response. Click it inside the transcript. The opener selects the file, restores a minimized Explorer window and checks that the matching window is in the foreground. Direct links are local to the account that created them. Their random tokens expire after 24 hours by default; `--hours` changes the lifetime. Registered paths and expiration times are stored in the user's local state directory.
+Use the generated URL for **Show in File Explorer** in a Codex response. Use a plain left click inside the Codex transcript. The opener selects the file, restores a minimized Explorer window and checks that the matching window is in the foreground. Direct links are local to the account that created them. Their random tokens expire after 24 hours by default; `--hours` changes the lifetime. Registered paths and expiration times are stored in the user's local state directory.
 
-The opener passes ordinary web URLs to `xdg-open`. The WSL launcher must receive the click: a gesture that sends a URL directly to the Windows browser bypasses it. Ordinary Markdown file links in existing Codex messages still use Codex's built-in file preview. Reissue a direct link for those files.
+The opener passes ordinary web URLs to `xdg-open`. In Windows Terminal, **Ctrl+click** can send a link straight to the Windows browser, bypassing the WSL opener. New direct links use the numeric loopback address and browser-blocked port 0. The selection token is in the URL fragment, which stays out of HTTP requests. If a browser gets the click, it may display a blocked-port error. For keyboard-only access, pass the quoted URL to `codex-explorer-open` in WSL. Ordinary Markdown file links in existing Codex messages still use Codex's built-in file preview. Reissue a direct link for those files.
 
 With the direct opener configured, the CLI also chooses direct links automatically. Use `--browser` to force browser mode.
 
