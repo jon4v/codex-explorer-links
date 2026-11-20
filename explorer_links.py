@@ -2,7 +2,7 @@
 import argparse
 import html
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import secrets
 import subprocess
 import threading
@@ -78,11 +78,25 @@ def serve(files, opener=reveal):
     return server
 
 
+def folder_uri(path):
+    folder = path.parent
+    if os.name == "nt":
+        windows = PureWindowsPath(folder)
+    else:
+        windows = PureWindowsPath(subprocess.check_output(
+            ["wslpath", "-w", str(folder)], text=True).rstrip("\n"))
+    drive = windows.drive
+    if not windows.is_absolute() or not drive.endswith(":") or len(drive) != 2:
+        raise ValueError("Native folder links require a Windows drive letter. Use --direct for WSL-only files.")
+    return windows.as_uri().rstrip("/") + "/"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--direct", dest="direct", action="store_true", help="Use the WSL direct opener and exit.")
     mode.add_argument("--browser", dest="direct", action="store_false", help="Serve browser-compatible links.")
+    mode.add_argument("--folder", action="store_true", help="Print the containing folder URI for Ctrl+click in Windows Terminal.")
     parser.set_defaults(direct=None)
     parser.add_argument("files", nargs="+", type=Path)
     parser.add_argument("--hours", type=int, choices=range(1, 169), metavar="1..168", default=24)
@@ -91,6 +105,13 @@ def main():
     for path in paths:
         if not path.is_file():
             parser.error(f"File not found: {path}")
+    if args.folder:
+        try:
+            folders = list(dict.fromkeys(folder_uri(path) for path in paths))
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            parser.error(str(exc))
+        print(*folders, sep="\n")
+        return
     try:
         powershell()
     except (OSError, subprocess.SubprocessError) as exc:

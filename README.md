@@ -7,10 +7,22 @@ Open File Explorer with a particular file selected. Run this Python CLI on Windo
 With Python 3.9 or later and [pipx](https://pipx.pypa.io/stable/installation/), run this command in PowerShell or WSL:
 
 ```console
-pipx install https://github.com/jon4v/codex-explorer-links/releases/download/v1.1.1/codex_explorer_links-1.1.1-py3-none-any.whl
+pipx install https://github.com/jon4v/codex-explorer-links/releases/download/v1.2.0/codex_explorer_links-1.2.0-py3-none-any.whl
 ```
 
 If your terminal cannot find the command after installation, run `pipx ensurepath` and open a new terminal. To uninstall, run `pipx uninstall codex-explorer-links`.
+
+## Ctrl+click in Windows Terminal
+
+For a file on a Windows drive, print its containing folder:
+
+```console
+codex-explorer-links --folder -- "model.3mf"
+```
+
+The command prints a directory address such as `file:///C:/Models/`. Keep that address visible on its own line in the transcript. **Ctrl+left-click the address** to open that folder in File Explorer. This uses Windows Terminal's built-in URL detection. A folder address needs no server, token, protocol installation, or change to the default browser. It reveals the folder path to anyone who can read the transcript.
+
+For a preview as well, put a normal local Markdown link to a preview image next to the folder address. A plain click on the preview opens Codex's side panel. For exact file selection, use the WSL direct opener below.
 
 ## Direct clicks in Codex on WSL
 

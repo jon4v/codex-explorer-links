@@ -1,4 +1,6 @@
+import contextlib
 import http.client
+import io
 import os
 from pathlib import Path
 import tempfile
@@ -9,10 +11,35 @@ from urllib.parse import urlsplit
 
 import explorer_direct
 
-from explorer_links import serve
+from explorer_links import folder_uri, main, serve
 
 
 class RevealTest(unittest.TestCase):
+    def test_folder_mode_prints_one_literal_directory_without_opening_anything(self):
+        with tempfile.TemporaryDirectory() as temp:
+            files = [Path(temp, "model.3mf"), Path(temp, "preview.png")]
+            for path in files:
+                path.touch()
+            arguments = ["codex-explorer-links", "--folder", "--", *map(str, files)]
+            output = io.StringIO()
+            expected = "file:///C:/Models/"
+            with patch("explorer_links.folder_uri", return_value=expected), \
+                 patch("sys.argv", arguments), patch("explorer_links.serve") as serve_mock, \
+                 patch("explorer_links.register") as register_mock, contextlib.redirect_stdout(output):
+                main()
+            self.assertEqual(output.getvalue().splitlines(), [expected])
+            serve_mock.assert_not_called()
+            register_mock.assert_not_called()
+
+    @unittest.skipIf(os.name == "nt", "exercises WSL path conversion")
+    def test_native_folder_uri_quotes_names_and_excludes_network_shares(self):
+        path = Path("/mnt/c/Models #1/é/model.3mf")
+        with patch("subprocess.check_output", return_value="C:\\Models #1\\é\n"):
+            self.assertEqual(folder_uri(path), "file:///C:/Models%20%231/%C3%A9/")
+        with patch("subprocess.check_output", return_value=r"\\server\share\folder"):
+            with self.assertRaises(ValueError):
+                folder_uri(path)
+
     def test_direct_links_are_private_expiring_selections(self):
         with tempfile.TemporaryDirectory() as temp, patch.dict("os.environ", {"XDG_STATE_HOME": temp}):
             files = [Path(temp, "sample α.txt"), Path(temp, "report.html")]
